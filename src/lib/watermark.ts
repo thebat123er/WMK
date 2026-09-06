@@ -1,5 +1,4 @@
 "use client";
-"use client";
 
 // Client-side watermark engine ใช้ Canvas API
 // ใช้สำหรับพรีวิวแบบ real-time ก่อนส่งไปทำ server-side
@@ -132,7 +131,7 @@ export function drawWatermark({ ctx, W, H, logoImg, config }: DrawArgs): void {
   // ---- Text ----
   if (text.text && text.text.trim().length > 0) {
     ctx.save();
-    ctx.font = `bold ${text.textSize}px Arial, sans-serif`;
+    ctx.font = `bold ${text.textSize}px ${text.fontFamily || "Arial, sans-serif"}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     // shadow ช่วยให้อ่านได้ทั้งรูปสว่าง/มืด
