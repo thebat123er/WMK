@@ -212,14 +212,36 @@ export async function POST(req: NextRequest) {
           .toBuffer();
       }
 
+      let textComposite;
       const textMeta = await sharp(textPng).metadata();
       const fW = textMeta.width!;
       const fH = textMeta.height!;
-      const { x, y } = calculatePosition(textPosition, W, H, fW, fH, textMargin);
+
+      if (textTile) {
+        // วางข้อความซ้อนทั่วทั้งภาพ
+        const stepX = Math.max(50, Math.round(fW * 1.2));
+        const stepY = Math.max(50, Math.round(fH * 1.4));
+        let tileMarkup = "";
+        for (let y = -fH; y < H + fH; y += stepY) {
+          for (let x = -fW; x < W + fW; x += stepX) {
+            const encoded = `data:image/png;base64,${textPng.toString("base64")}`;
+            tileMarkup += `<image href="${encoded}" x="${x}" y="${y}" width="${fW}" height="${fH}" />`;
+          }
+        }
+        const tileSvg = Buffer.from(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${tileMarkup}</svg>`
+        );
+        const tiledText = await sharp(tileSvg).png().toBuffer();
+        textComposite = { input: tiledText, top: 0, left: 0 };
+      } else {
+        // วางตามตำแหน่ง
+        const { x, y } = calculatePosition(textPosition, W, H, fW, fH, textMargin);
+        textComposite = { input: textPng, top: y, left: x };
+      }
 
       // composite text on top of current buffer
       const current = await composed.toBuffer();
-      composed = sharp(current).composite([{ input: textPng, top: y, left: x }]);
+      composed = sharp(current).composite([textComposite]);
     }
 
     // ----- Output -----

@@ -139,17 +139,34 @@ export function drawWatermark({ ctx, W, H, logoImg, config }: DrawArgs): void {
     ctx.shadowBlur = 4;
     ctx.shadowOffsetX = 1;
     ctx.shadowOffsetY = 1;
+    ctx.fillStyle = text.textColor;
+    ctx.globalAlpha = text.opacity;
 
     const metrics = ctx.measureText(text.text);
     const wL = metrics.width + 20;
     const hL = text.textSize * 1.4;
-    const { x, y } = calcPos(text.position, W, H, wL, hL, text.margin);
 
-    ctx.globalAlpha = text.opacity;
-    ctx.translate(x + wL / 2, y + hL / 2);
-    if (text.rotation) ctx.rotate((text.rotation * Math.PI) / 180);
-    ctx.fillStyle = text.textColor;
-    ctx.fillText(text.text, 0, 0);
+    if (text.tile) {
+      // วางข้อความซ้อนทั่วทั้งภาพ (เหมือนโลโก้)
+      const stepX = Math.max(50, wL * 1.2);
+      const stepY = Math.max(50, hL * 1.4);
+      for (let y = -hL; y < H + hL; y += stepY) {
+        for (let x = -wL; x < W + wL; x += stepX) {
+          ctx.save();
+          ctx.translate(x + wL / 2, y + hL / 2);
+          if (text.rotation) ctx.rotate((text.rotation * Math.PI) / 180);
+          ctx.fillText(text.text, 0, 0);
+          ctx.restore();
+        }
+      }
+    } else {
+      // วางข้อความตามตำแหน่งที่เลือก
+      const { x, y } = calcPos(text.position, W, H, wL, hL, text.margin);
+      ctx.translate(x + wL / 2, y + hL / 2);
+      if (text.rotation) ctx.rotate((text.rotation * Math.PI) / 180);
+      ctx.fillText(text.text, 0, 0);
+    }
+
     ctx.restore();
   }
 

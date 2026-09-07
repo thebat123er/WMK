@@ -197,11 +197,11 @@ export default function WatermarkPage() {
   };
 
   const POSITIONS: { value: Position; label: string }[] = [
-    { value: "top-left", label: "⬚ บน-ซ้าย" },
-    { value: "top-right", label: "⬚ บน-ขวา" },
-    { value: "bottom-left", label: "⬚ ล่าง-ซ้าย" },
-    { value: "bottom-right", label: "⬚ ล่าง-ขวา" },
-    { value: "center", label: "⊙ กลาง" },
+    { value: "top-left", label: " บน-ซ้าย" },
+    { value: "top-right", label: " บน-ขวา" },
+    { value: "bottom-left", label: " ล่าง-ซ้าย" },
+    { value: "bottom-right", label: " ล่าง-ขวา" },
+    { value: "center", label: " กลาง" },
   ];
 
   return (
