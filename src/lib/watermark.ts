@@ -66,6 +66,8 @@ interface DrawArgs {
   H: number;
   logoImg: HTMLImageElement | null;
   config: WatermarkConfig;
+  // Optional custom position override (from mouse drag)
+  customPos?: { x: number; y: number };
 }
 
 function calcPos(
@@ -90,7 +92,7 @@ function calcPos(
   }
 }
 
-export function drawWatermark({ ctx, W, H, logoImg, config }: DrawArgs): void {
+export function drawWatermark({ ctx, W, H, logoImg, config, customPos }: DrawArgs): void {
   const { logo, text } = config;
 
   ctx.save();
@@ -115,6 +117,15 @@ export function drawWatermark({ ctx, W, H, logoImg, config }: DrawArgs): void {
           ctx.restore();
         }
       }
+      ctx.globalAlpha = 1;
+    } else if (customPos) {
+      // ใช้ตำแหน่งจาก mouse drag
+      ctx.save();
+      ctx.translate(customPos.x, customPos.y);
+      if (logo.rotation) ctx.rotate((logo.rotation * Math.PI) / 180);
+      ctx.globalAlpha = logo.opacity;
+      ctx.drawImage(logoImg, -targetW / 2, -targetH / 2, targetW, targetH);
+      ctx.restore();
       ctx.globalAlpha = 1;
     } else {
       const { x, y } = calcPos(logo.position, W, H, targetW, targetH, logo.margin);
@@ -159,6 +170,11 @@ export function drawWatermark({ ctx, W, H, logoImg, config }: DrawArgs): void {
           ctx.restore();
         }
       }
+    } else if (customPos) {
+      // ใช้ตำแหน่งจาก mouse drag
+      ctx.translate(customPos.x, customPos.y);
+      if (text.rotation) ctx.rotate((text.rotation * Math.PI) / 180);
+      ctx.fillText(text.text, 0, 0);
     } else {
       // วางข้อความตามตำแหน่งที่เลือก
       const { x, y } = calcPos(text.position, W, H, wL, hL, text.margin);

@@ -39,9 +39,14 @@ export default function WatermarkPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>("");
 
+  // Mouse drag state
+  const [isDragging, setIsDragging] = useState(false);
+  const [customPosition, setCustomPosition] = useState<{ x: number; y: number } | undefined>(undefined);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mainImgRef = useRef<HTMLImageElement | null>(null);
   const logoImgRef = useRef<HTMLImageElement | null>(null);
+  const lastMousePosRef = useRef<{ x: number; y: number } | null>(null);
 
   // Cleanup object URLs
   useEffect(() => {
@@ -98,6 +103,42 @@ export default function WatermarkPage() {
       });
   }, [logoUrl]);
 
+  // Mouse drag handlers - click anywhere to start dragging
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!mainImgRef.current) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Start dragging from any click position
+    setIsDragging(true);
+    lastMousePosRef.current = { x, y };
+    setCustomPosition({ x, y });
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragging || !lastMousePosRef.current) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setCustomPosition({ x, y });
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    lastMousePosRef.current = null;
+    // Keep the custom position after drag ends
+  }, []);
+
   // Render canvas preview
   const renderPreview = useCallback(() => {
     const canvas = canvasRef.current;
@@ -123,13 +164,14 @@ export default function WatermarkPage() {
       H,
       logoImg: mode !== "text" ? logoImgRef.current : null,
       config: config,
+      customPos: customPosition,
     });
-  }, [config, logoUrl, mode]);
+  }, [config, customPosition, mode]);
 
   // Re-render when inputs change
   useEffect(() => {
     if (mainImgRef.current) renderPreview();
-  }, [renderPreview]);
+  }, [renderPreview, imageUrl, logoUrl]);
 
   // Update logo config
   const updateLogo = <K extends keyof LogoConfig>(key: K, value: LogoConfig[K]) => {
@@ -197,12 +239,22 @@ export default function WatermarkPage() {
   };
 
   const POSITIONS: { value: Position; label: string }[] = [
-    { value: "top-left", label: " บน-ซ้าย" },
-    { value: "top-right", label: " บน-ขวา" },
-    { value: "bottom-left", label: " ล่าง-ซ้าย" },
-    { value: "bottom-right", label: " ล่าง-ขวา" },
-    { value: "center", label: " กลาง" },
+    { value: "top-left", label: "⬚ บน-ซ้าย" },
+    { value: "top-right", label: "⬚ บน-ขวา" },
+    { value: "bottom-left", label: "⬚ ล่าง-ซ้าย" },
+    { value: "bottom-right", label: "⬚ ล่าง-ขวา" },
+    { value: "center", label: "⊙ กลาง" },
   ];
+
+  // Function to set position from buttons (backward compatibility)
+  const setPositionFromButton = (position: Position, target: "logo" | "text") => {
+    if (target === "logo") {
+      updateLogo("position", position);
+    } else {
+      updateText("position", position);
+    }
+    setCustomPosition(undefined); // Clear custom position when using buttons
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
@@ -212,7 +264,7 @@ export default function WatermarkPage() {
           <div className="flex items-center gap-3">
             <span className="text-2xl">💧</span>
             <h1 className="text-xl font-bold tracking-tight">
-              Watermark<span className="text-cyan-400">J&Ohm</span>
+              Watermark<span className="text-cyan-400">Studio</span>
             </h1>
           </div>
           <span className="text-xs text-slate-400"></span>
@@ -337,24 +389,38 @@ export default function WatermarkPage() {
         <div className="grid gap-8 lg:grid-cols-[1fr,1.4fr]">
           {/* Settings Panel */}
           <section className="space-y-5">
+            {/* ===== DRAG AREA NOTE ===== */}
+            <div className="rounded-xl bg-blue-900/30 p-4 border border-blue-500/30 backdrop-blur">
+              <h3 className="mb-2 text-lg font-semibold text-blue-400">🖱️ การวางตำแหน่งแบบใช้เมาส์</h3>
+              <p className="text-sm text-blue-200">
+                คลิกและลากบนรูปภาพพรีวิวเพื่อปรับตำแหน่งโลโก้หรือข้อความ
+              </p>
+              {customPosition && (
+                <p className="text-xs text-green-400 mt-1">
+                  ตำแหน่งที่ตั้ง: X={Math.round(customPosition.x)}, Y={Math.round(customPosition.y)}
+                </p>
+              )}
+            </div>
+
             {/* ===== LOGO SETTINGS ===== */}
             {(mode === "logo" || mode === "both") && (
               <div className="rounded-xl bg-slate-800/70 p-4 backdrop-blur border border-slate-600">
                 <h3 className="mb-3 text-xl font-semibold text-emerald-400">🏷️ ตั้งค่าโลโก้</h3>
                 <div className="space-y-4">
-                  {/* Logo Position */}
+                  {/* Position Buttons (backward compatibility) */}
                   <div>
-                    <label className="mb-2 block text-lg text-slate-400">📍 ตำแหน่ง</label>
+                    <label className="mb-2 block text-lg text-slate-400">📍 ตำแหน่ง (คลิกปุ่ม)</label>
                     <div className="grid grid-cols-5 gap-2">
                       {POSITIONS.map((p) => (
                         <button
                           key={p.value}
-                          onClick={() => updateLogo("position", p.value)}
+                          onClick={() => setPositionFromButton(p.value, "logo")}
                           className={`rounded-lg py-2 text-center text-lg transition-all ${
                             config.logo.position === p.value
                               ? "bg-emerald-500 text-white"
                               : "bg-slate-700 text-slate-300 hover:bg-slate-600"
                           }`}
+                          title="คลิกเพื่อตั้งตำแหน่ง"
                         >
                           {p.label}
                         </button>
@@ -497,19 +563,20 @@ export default function WatermarkPage() {
                     </div>
                   </div>
 
-                  {/* Text Position */}
+                  {/* Position Buttons (backward compatibility) */}
                   <div>
-                    <label className="mb-2 block text-lg text-slate-400">📍 ตำแหน่ง</label>
+                    <label className="mb-2 block text-lg text-slate-400">📍 ตำแหน่ง (คลิกปุ่ม)</label>
                     <div className="grid grid-cols-5 gap-2">
                       {POSITIONS.map((p) => (
                         <button
                           key={p.value}
-                          onClick={() => updateText("position", p.value)}
+                          onClick={() => setPositionFromButton(p.value, "text")}
                           className={`rounded-lg py-2 text-center text-lg transition-all ${
                             config.text.position === p.value
                               ? "bg-cyan-500 text-white"
                               : "bg-slate-700 text-slate-300 hover:bg-slate-600"
                           }`}
+                          title="คลิกเพื่อตั้งตำแหน่ง"
                         >
                           {p.label}
                         </button>
@@ -603,13 +670,16 @@ export default function WatermarkPage() {
 
           {/* Canvas Preview */}
           <section>
-            <h3 className="mb-3 text-lg font-semibold text-slate-300">🖼️ พรีวิว (แสดงผลแบบ Real-time)</h3>
+            <h3 className="mb-3 text-lg font-semibold text-slate-300">🖼️ พรีวิว (กดค้างและลากบนภาพเพื่อวางตำแหน่ง)</h3>
             <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800/50">
               {imageFile ? (
                 <div className="flex justify-center p-4">
                   <canvas
                     ref={canvasRef}
-                    className="max-w-full rounded-lg shadow-2xl"
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    className="max-w-full rounded-lg shadow-2xl cursor-crosshair"
                     style={{ maxHeight: "520px" }}
                   />
                 </div>
@@ -622,7 +692,7 @@ export default function WatermarkPage() {
             </div>
             {imageFile && (
               <p className="mt-2 text-center text-lg text-slate-500">
-                พรีวิวจาก Canvas — คุณภาพจริงอาจแตกต่างเล็กน้อย
+                📌 กดค้างและลากบนภาพเพื่อปรับตำแหน่งโลโก้หรือข้อความ
               </p>
             )}
           </section>
