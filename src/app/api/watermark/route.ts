@@ -247,7 +247,9 @@ export async function POST(req: NextRequest) {
     // ----- Output -----
     const outFormat = (mainMeta.format ?? "jpeg") as string;
     let finalBuffer: Buffer;
-    const baseName = (imageFile.name ?? "image").replace(/\.[^.]+$/, "");
+    // Sanitize filename - only ASCII characters allowed
+    const rawName = (imageFile.name ?? "image").replace(/\.[^.]+$/, "");
+    const baseName = rawName.replace(/[^\x00-\x7F]/g, "_").substring(0, 100) || "watermarked";
     let contentType = "image/jpeg";
     let ext = "jpg";
 

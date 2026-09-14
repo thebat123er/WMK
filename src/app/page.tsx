@@ -227,7 +227,10 @@ export default function WatermarkPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ?? "watermarked.jpg";
+      // Safely extract filename from header (ASCII only)
+      const contentDisp = res.headers.get("Content-Disposition") ?? "";
+      const match = contentDisp.match(/filename="(.+)"/);
+      a.download = match?.[1]?.replace(/[^\x00-\x7F]/g, "_") ?? "watermarked.jpg";
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
