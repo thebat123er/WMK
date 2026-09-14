@@ -42,6 +42,7 @@ export default function WatermarkPage() {
   // Mouse drag state
   const [isDragging, setIsDragging] = useState(false);
   const [customPosition, setCustomPosition] = useState<{ x: number; y: number } | undefined>(undefined);
+  const [renderTrigger, setRenderTrigger] = useState(0);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mainImgRef = useRef<HTMLImageElement | null>(null);
@@ -83,6 +84,7 @@ export default function WatermarkPage() {
     loadImage(imageUrl)
       .then((img) => {
         mainImgRef.current = img;
+        setRenderTrigger((t) => t + 1);
       })
       .catch(() => {
         mainImgRef.current = null;
@@ -97,6 +99,7 @@ export default function WatermarkPage() {
     loadImage(logoUrl)
       .then((img) => {
         logoImgRef.current = img;
+        setRenderTrigger((t) => t + 1);
       })
       .catch(() => {
         logoImgRef.current = null;
@@ -171,7 +174,11 @@ export default function WatermarkPage() {
   // Re-render when inputs change
   useEffect(() => {
     if (mainImgRef.current) renderPreview();
-  }, [renderPreview, imageUrl, logoUrl]);
+  }, [renderPreview]);
+
+  useEffect(() => {
+    if (mainImgRef.current) renderPreview();
+  }, [renderTrigger]);
 
   // Update logo config
   const updateLogo = <K extends keyof LogoConfig>(key: K, value: LogoConfig[K]) => {
