@@ -63,20 +63,23 @@ function calculatePosition(
 
 // Helper: สร้าง SVG text watermark (fallback เมื่อไม่มี logo)
 function buildTextWatermarkSvg(text: string, fontSize: number, opacity: number, color: string, fontFamily: string): Buffer {
-  const safe = text.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">");
+  const safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  // Escape special chars in attributes
+  const safeColor = color.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  const safeFontFamily = fontFamily.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
   const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="200">
   <text
     x="50%"
     y="50%"
-    font-family="${fontFamily}"
+    font-family="${safeFontFamily}"
     font-size="${fontSize}"
     font-weight="bold"
-    fill="${color}"
+    fill="${safeColor}"
     fill-opacity="${opacity}"
     text-anchor="middle"
     dominant-baseline="middle"
-  >${safe}</text>
+  >${safeText}</text>
 </svg>`;
   return Buffer.from(svg);
 }
